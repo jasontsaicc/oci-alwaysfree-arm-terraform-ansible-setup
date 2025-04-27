@@ -1,0 +1,94 @@
+---
+- name: Setup and Secure Basic Environment on Ubuntu ARM VMs
+  hosts: ubuntu_arm
+  become: yes
+
+  vars:
+    timezone: Asia/Taipei
+    ntp_servers:
+      - time.google.com
+      - time1.google.com
+      - time2.google.com
+      - time3.google.com
+
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Upgrade all packages
+      apt:
+        upgrade: dist
+
+    - name: Install basic packages
+      apt:
+        name:
+          - git
+          - wget
+          - iputils-ping
+          - vim
+          - curl
+          - htop
+          - fail2ban
+          - firewalld
+          - chrony
+          - unzip
+          - iperf3
+          - lsof
+          - net-tools
+          - bind9-utils
+        state: present
+
+    - name: Set system timezone
+      community.general.timezone:
+        name: "{{ timezone }}"
+
+    - name: Configure Google NTP servers
+      blockinfile:
+        path: /etc/chrony/chrony.conf
+        marker: "# {mark} GOOGLE NTP CONFIG"
+        block: |
+          {% for server in ntp_servers %}
+          server {{ server }} iburst
+          {% endfor %}
+      notify:
+        - Restart chrony
+
+    - name: Ensure chrony service is running and enabled
+      service:
+        name: chrony
+        state: started
+        enabled: yes
+
+    - name: Ensure firewalld service is running and enabled
+      service:
+        name: firewalld
+        state: started
+        enabled: yes
+
+    - name: Allow SSH service in firewalld
+      firewalld:
+        service: ssh
+        permanent: true
+        state: enabled
+        immediate: yes
+
+    - name: Allow icmp service in firewalld
+      firewalld:
+        icmp_block: echo-request
+        state: enabled
+        immediate: yes
+        permanent: yes
+
+    - name: Ensure fail2ban service is running and enabled
+      service:
+        name: fail2ban
+        state: started
+        enabled: yes
+
+  handlers:
+    - name: Restart chrony
+      service:
+        name: chrony
+        state: restarted

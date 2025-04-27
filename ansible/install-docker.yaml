@@ -1,0 +1,64 @@
+---
+- name: Install Docker and Docker Compose on Ubuntu ARM VMs (Best Practice)
+  hosts: ubuntu_arm
+  become: yes
+
+  vars:
+    docker_apt_url: "https://download.docker.com/linux/ubuntu"
+    docker_compose_url: "https://github.com/docker/compose/releases/latest/download/docker-compose-linux-aarch64"
+
+  tasks:
+    - name: Install required packages
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg-agent
+          - software-properties-common
+        state: present
+
+    - name: Add Docker GPG key
+      apt_key:
+        url: "{{ docker_apt_url }}/gpg"
+        state: present
+        validate_certs: yes
+
+    - name: Add Docker APT repository
+      apt_repository:
+        repo: "deb [arch=arm64] {{ docker_apt_url }} {{ ansible_distribution_release }} stable"
+        state: present
+
+    - name: Update apt packages
+      apt:
+        update_cache: yes
+
+    - name: Install Docker Engine
+      apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+        state: present
+
+    - name: Enable and start Docker service
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Download Docker Compose binary
+      get_url:
+        url: "{{ docker_compose_url }}"
+        dest: /usr/local/bin/docker-compose
+        mode: '0755'
+        force: yes
+
+    - name: Check Docker Compose version
+      command: docker-compose --version
+      register: compose_version
+      changed_when: false
+
+    - name: Show Docker Compose version
+      debug:
+        msg: "Installed Docker Compose version: {{ compose_version.stdout }}"
