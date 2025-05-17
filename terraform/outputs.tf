@@ -18,15 +18,4 @@ output "instance_private_ip_2" {
   value       = oci_core_instance.arm_vm_2.private_ip
 }
 
-output "subnet_ocid" {
-  description = "The OCID of the subnet"
-  value       = oci_core_subnet.freevm_subnet.id
-}
-output "vcn_ocid" {
-  description = "The OCID of the VCN"
-  value       = oci_core_vcn.new_vcn.id
-}
-output "msg_ocid" {
-  description = "The OCID of the NSG"
-  value       = oci_core_network_security_group.new_nsg.id
-}
+

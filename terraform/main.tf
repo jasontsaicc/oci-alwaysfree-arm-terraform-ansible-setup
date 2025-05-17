@@ -1,6 +1,13 @@
-provider "oci" {
-  region = var.region
+terraform {
+  required_providers {
+    oci = {
+      source  = "hashicorp/oci"
+      version = ">= 4.0.0"
+    }
+  }
 }
+
+
 
 resource "oci_core_instance" "arm_vm_1" {
   availability_domain = var.availability_domain
@@ -15,14 +22,14 @@ resource "oci_core_instance" "arm_vm_1" {
 
   create_vnic_details {
     subnet_id        = var.subnet_ocid
-    assign_public_ip = true  
+    assign_public_ip = true
     display_name     = "free-arm-vnic-1"
     hostname_label   = "freearmvm-1"
   }
 
   source_details {
     source_type = "image"
-    source_id    = var.image_ocid
+    source_id   = var.image_ocid
   }
 
   metadata = {
