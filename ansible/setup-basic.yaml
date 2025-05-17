@@ -1,5 +1,5 @@
 ---
-- name: Setup and Secure Basic Environment on Ubuntu ARM VMs
+- name: Setup and Secure Basic Environment on Ubuntu ARM VMs with UFW + fail2ban
   hosts: ubuntu_arm
   become: yes
 
@@ -31,7 +31,7 @@
           - curl
           - htop
           - fail2ban
-          - firewalld
+          - ufw
           - chrony
           - unzip
           - iperf3
@@ -61,25 +61,22 @@
         state: started
         enabled: yes
 
-    - name: Ensure firewalld service is running and enabled
-      service:
-        name: firewalld
-        state: started
-        enabled: yes
+    - name: Allow SSH through UFW
+      ufw:
+        rule: allow
+        name: OpenSSH
 
-    - name: Allow SSH service in firewalld
-      firewalld:
-        service: ssh
-        permanent: true
-        state: enabled
-        immediate: yes
+    - name: Allow UDP port 16390 for WireGuard VPN
+      ufw:
+        rule: allow
+        port: "16390"
+        proto: udp
 
-    - name: Allow icmp service in firewalld
-      firewalld:
-        icmp_block: echo-request
+    - name: Enable UFW (Uncomplicated Firewall)
+      ufw:
         state: enabled
-        immediate: yes
-        permanent: yes
+        policy: deny
+        direction: incoming
 
     - name: Ensure fail2ban service is running and enabled
       service:
@@ -87,8 +84,29 @@
         state: started
         enabled: yes
 
+    - name: Configure fail2ban for SSH
+      copy:
+        dest: /etc/fail2ban/jail.local
+        content: |
+          [sshd]
+          enabled = true
+          port    = ssh
+          logpath = %(sshd_log)s
+          backend = systemd
+          maxretry = 5
+          bantime = 3600
+          findtime = 600
+
+      notify:
+        - Restart fail2ban
+
   handlers:
     - name: Restart chrony
       service:
         name: chrony
+        state: restarted
+
+    - name: Restart fail2ban
+      service:
+        name: fail2ban
         state: restarted
