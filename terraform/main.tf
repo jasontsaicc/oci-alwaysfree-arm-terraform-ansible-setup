@@ -44,6 +44,32 @@ resource "oci_core_network_security_group_security_rule" "allow_http" {
   }
   description = "Allow HTTP from anywhere"
 }
+# wireguard ingress rule
+resource "oci_core_network_security_group_security_rule" "allow_wireguard" {
+  network_security_group_id = oci_core_network_security_group.shared_nsg.id
+  direction                 = "INGRESS"
+  protocol                  = "17" # UDP
+  source                    = "0.0.0.0/0"
+  udp_options {
+    destination_port_range {
+      min = 16390
+      max = 16390
+    }
+  }
+  description = "Allow HTTP from anywhere"
+}
+# ICMP ingress rule
+resource "oci_core_network_security_group_security_rule" "allow_icmp" {
+  network_security_group_id = oci_core_network_security_group.shared_nsg.id
+  direction                 = "INGRESS"
+  protocol                  = "1" # ICMP
+  source                    = "10.0.0.0/8" # 允許來自 VCN 的 ICMP 流量
+  icmp_options {
+    type = 8 # Echo Request
+    code = 0 # Any code
+  }
+  description = "Allow ICMP from VCN"
+}
 
 # Egress: allow all outbound traffic
 resource "oci_core_network_security_group_security_rule" "allow_all_egress" {
