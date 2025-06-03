@@ -1,64 +1,63 @@
 ---
-- name: Install Docker and Docker Compose on Ubuntu ARM VMs (Best Practice)
+- name: Install Docker and Docker Compose V2 on Ubuntu ARM VMs (Best Practice)
   hosts: ubuntu_arm
-  become: yes
+  become: true
 
   vars:
     docker_apt_url: "https://download.docker.com/linux/ubuntu"
-    docker_compose_url: "https://github.com/docker/compose/releases/latest/download/docker-compose-linux-aarch64"
 
   tasks:
     - name: Install required packages
-      apt:
+      ansible.builtin.apt:
         name:
           - apt-transport-https
           - ca-certificates
           - curl
-          - gnupg-agent
+          - gnupg
           - software-properties-common
         state: present
 
     - name: Add Docker GPG key
-      apt_key:
+      ansible.builtin.apt_key:
         url: "{{ docker_apt_url }}/gpg"
         state: present
-        validate_certs: yes
+        validate_certs: true
 
     - name: Add Docker APT repository
-      apt_repository:
+      ansible.builtin.apt_repository:
         repo: "deb [arch=arm64] {{ docker_apt_url }} {{ ansible_distribution_release }} stable"
         state: present
 
     - name: Update apt packages
-      apt:
-        update_cache: yes
+      ansible.builtin.apt:
+        update_cache: true
 
-    - name: Install Docker Engine
-      apt:
+    - name: Install Docker Engine and Compose V2
+      ansible.builtin.apt:
         name:
           - docker-ce
           - docker-ce-cli
           - containerd.io
+          - docker-compose-plugin
         state: present
 
     - name: Enable and start Docker service
-      service:
+      ansible.builtin.service:
         name: docker
         state: started
-        enabled: yes
+        enabled: true
 
-    - name: Download Docker Compose binary
-      get_url:
-        url: "{{ docker_compose_url }}"
-        dest: /usr/local/bin/docker-compose
-        mode: '0755'
-        force: yes
+    - name: Add current user to Docker group
+      ansible.builtin.user:
+        name: "{{ ansible_user }}"
+        groups: docker
+        append: true
 
-    - name: Check Docker Compose version
-      command: docker-compose --version
+    - name: Check Docker Compose V2 version
+      ansible.builtin.command: docker compose version
       register: compose_version
       changed_when: false
 
-    - name: Show Docker Compose version
-      debug:
+    - name: Show Docker Compose V2 version
+      ansible.builtin.debug:
         msg: "Installed Docker Compose version: {{ compose_version.stdout }}"

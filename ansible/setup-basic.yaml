@@ -8,8 +8,6 @@
     ntp_servers:
       - time.google.com
       - time1.google.com
-      - time2.google.com
-      - time3.google.com
 
   tasks:
     - name: Update apt cache
@@ -38,6 +36,9 @@
           - lsof
           - net-tools
           - bind9-utils
+          - wireguard
+          - tcpdump
+          - htop
         state: present
 
     - name: Set system timezone
