@@ -41,3 +41,4 @@ terraform.rc
 *.pub
 *key
 *.ini
+ansible/inventory.ini
