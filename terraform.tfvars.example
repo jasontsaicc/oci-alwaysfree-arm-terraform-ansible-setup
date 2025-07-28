@@ -1,0 +1,93 @@
+# Terraform Variables Configuration Template
+# Copy this file to terraform.tfvars and fill in your actual values
+# DO NOT commit terraform.tfvars to version control as it contains sensitive information
+
+# =============================================================================
+# REQUIRED VARIABLES - You must provide values for these
+# =============================================================================
+
+# Oracle Cloud Infrastructure Region
+# Example: "ap-osaka-1", "us-ashburn-1", "eu-frankfurt-1"
+region = "your-region-here"
+
+# Compartment OCID where resources will be created
+# Find this in OCI Console -> Identity & Security -> Compartments
+compartment_ocid = "ocid1.tenancy.oc1..your-compartment-ocid-here"
+
+# VCN OCID where the VMs will be deployed
+# Find this in OCI Console -> Networking -> Virtual Cloud Networks
+vcn_ocid = "ocid1.vcn.oc1.your-region.your-vcn-ocid-here"
+
+# Availability Domain where VMs will be created
+# Format: "region-code:AVAILABILITY-DOMAIN-NAME"
+# Example: "pBCu:AP-OSAKA-1-AD-1", "Uocm:US-ASHBURN-AD-1"
+availability_domain = "your-region-code:YOUR-AD-NAME"
+
+# Subnet OCID where VM VNICs will be attached
+# Find this in OCI Console -> Networking -> Virtual Cloud Networks -> Your VCN -> Subnets
+subnet_ocid = "ocid1.subnet.oc1.your-region.your-subnet-ocid-here"
+
+# SSH Public Key content (entire line from your .pub file)
+# Generate with: ssh-keygen -t rsa -b 4096 -C "your-email@example.com"
+# Then copy content from ~/.ssh/id_rsa.pub
+ssh_public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQ... your-email@example.com"
+
+# Ubuntu ARM64 Image OCID for your region
+# Find this in OCI Console -> Compute -> Images -> Partner Images
+# Search for "Canonical Ubuntu" and select ARM64 version
+image_ocid = "ocid1.image.oc1.your-region.your-ubuntu-arm-image-ocid-here"
+
+# Private IP addresses for the VMs (must be within subnet CIDR)
+# Example: If subnet is 10.0.0.0/24, use IPs like 10.0.0.100, 10.0.0.200
+vm1_private_ip = "10.0.0.100"
+vm2_private_ip = "10.0.0.200"
+
+# =============================================================================
+# OPTIONAL VARIABLES - These have defaults but can be customized
+# =============================================================================
+
+# Boot volume size in GB (default: 50)
+# Free tier allows up to 200GB total across all volumes
+boot_volume_size_in_gbs = 100
+
+# Whether to create and attach additional data volumes (default: false)
+# Set to true if you need extra storage beyond boot volume
+attach_data_volume = false
+
+# Network Security Group display name (default: "shared-vm-nsg")
+nsg_display_name = "shared-vm-nsg"
+
+# VM display names and hostname labels
+vm1_display_name = "free-arm-vm-1"
+vm2_display_name = "free-arm-vm-2"
+vm1_hostname_label = "YourNameArmVM1"
+vm2_hostname_label = "YourNameArmVM2"
+
+# =============================================================================
+# USAGE INSTRUCTIONS
+# =============================================================================
+
+# 1. Copy this file: cp terraform.tfvars.example terraform.tfvars
+# 2. Edit terraform.tfvars with your actual values
+# 3. Ensure terraform.tfvars is in .gitignore (it should be by default)
+# 4. Run: terraform plan
+# 5. If plan looks good, run: terraform apply
+
+# =============================================================================
+# SECURITY NOTES
+# =============================================================================
+
+# - Never commit terraform.tfvars to version control
+# - Keep your SSH private key secure and never share it
+# - Use strong, unique SSH key passphrases
+# - Regularly rotate SSH keys and update the public key in terraform.tfvars
+# - Consider using OCI Vault for sensitive values in production environments
+
+# =============================================================================
+# RESOURCE LIMITS (Oracle Cloud Free Tier)
+# =============================================================================
+
+# ARM Compute: Up to 4 OCPUs and 24 GB RAM total across all ARM instances
+# Block Storage: Up to 200 GB total across all volumes
+# Network: 10 TB outbound data transfer per month
+# This configuration uses: 4 OCPUs, 24 GB RAM, 200 GB storage (2x100GB boot volumes)

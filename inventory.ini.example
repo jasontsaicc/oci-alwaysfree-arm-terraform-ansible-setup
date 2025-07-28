@@ -1,0 +1,149 @@
+# Ansible Inventory Configuration Template
+# Copy this file to inventory.ini and update with your actual values
+# This file defines the hosts and groups for Ansible playbook execution
+
+# =============================================================================
+# HOST DEFINITIONS
+# =============================================================================
+
+# Ubuntu ARM VMs - Replace IP addresses with actual public IPs from Terraform output
+# You can get these IPs by running: terraform output
+[ubuntu_arm]
+vm-1 ansible_host=YOUR_VM1_PUBLIC_IP_HERE
+vm-2 ansible_host=YOUR_VM2_PUBLIC_IP_HERE
+
+# Alternative format with more explicit naming:
+# free-arm-vm-1 ansible_host=YOUR_VM1_PUBLIC_IP_HERE
+# free-arm-vm-2 ansible_host=YOUR_VM2_PUBLIC_IP_HERE
+
+# =============================================================================
+# K3S CLUSTER CONFIGURATION (if using Kubernetes)
+# =============================================================================
+
+# K3s Master Node (typically vm-1)
+[k3s_master]
+vm-1 ansible_host=YOUR_VM1_PUBLIC_IP_HERE
+
+# K3s Worker Nodes (additional VMs)
+[k3s_workers]
+vm-2 ansible_host=YOUR_VM2_PUBLIC_IP_HERE
+
+# All K3s nodes (master + workers)
+[k3s_cluster:children]
+k3s_master
+k3s_workers
+
+# =============================================================================
+# GROUP VARIABLES
+# =============================================================================
+
+# Common variables for all Ubuntu ARM VMs
+[ubuntu_arm:vars]
+# SSH connection settings
+ansible_user=ubuntu
+ansible_ssh_private_key_file=./ansible/oracle_vm_rsa
+ansible_ssh_common_args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
+
+# Python interpreter (Ubuntu 24.04 uses Python 3.12 by default)
+ansible_python_interpreter=/usr/bin/python3
+
+# Connection timeout settings
+ansible_ssh_timeout=30
+ansible_connect_timeout=30
+
+# Become settings (for sudo operations)
+ansible_become=true
+ansible_become_method=sudo
+ansible_become_user=root
+
+# =============================================================================
+# ENVIRONMENT-SPECIFIC GROUPS (Optional)
+# =============================================================================
+
+# Production environment
+[production]
+# Add production hosts here when ready
+
+# Development environment
+[development:children]
+ubuntu_arm
+
+# Staging environment
+[staging]
+# Add staging hosts here when needed
+
+# =============================================================================
+# SERVICE-SPECIFIC GROUPS (Optional)
+# =============================================================================
+
+# Web servers (if running web services)
+[webservers:children]
+ubuntu_arm
+
+# Database servers (if running databases)
+[databases]
+# vm-1 ansible_host=YOUR_VM1_PUBLIC_IP_HERE
+
+# Load balancers (if using load balancing)
+[loadbalancers]
+# Add load balancer hosts here
+
+# =============================================================================
+# USAGE INSTRUCTIONS
+# =============================================================================
+
+# 1. Copy this file: cp inventory.ini.example inventory.ini
+# 2. Run terraform apply to get VM public IP addresses
+# 3. Get the IPs with: terraform output
+# 4. Replace YOUR_VM1_PUBLIC_IP_HERE and YOUR_VM2_PUBLIC_IP_HERE with actual IPs
+# 5. Ensure your SSH private key is at ./ansible/oracle_vm_rsa
+# 6. Test connectivity: ansible -i inventory.ini ubuntu_arm -m ping
+# 7. Run playbooks: ansible-playbook -i inventory.ini ansible/setup-basic.yaml
+
+# =============================================================================
+# SSH KEY SETUP
+# =============================================================================
+
+# 1. Ensure your SSH private key is properly configured:
+#    - Key file: ./ansible/oracle_vm_rsa
+#    - Permissions: chmod 600 ./ansible/oracle_vm_rsa
+#    - Corresponding public key should be in terraform.tfvars as ssh_public_key
+
+# 2. Test SSH connection manually:
+#    ssh -i ./ansible/oracle_vm_rsa ubuntu@YOUR_VM_PUBLIC_IP
+
+# =============================================================================
+# SECURITY NOTES
+# =============================================================================
+
+# - Keep inventory.ini in version control but ensure no sensitive data
+# - Use vault for sensitive variables: ansible-vault encrypt_string 'secret'
+# - Regularly rotate SSH keys and update both Terraform and Ansible configs
+# - Consider using SSH agent forwarding for additional security
+# - Use jump hosts/bastion hosts for production environments
+
+# =============================================================================
+# TROUBLESHOOTING
+# =============================================================================
+
+# Common issues and solutions:
+
+# 1. SSH connection refused:
+#    - Check VM is running: terraform show
+#    - Verify security group allows SSH from your IP
+#    - Confirm SSH key permissions: ls -la ./ansible/oracle_vm_rsa
+
+# 2. Permission denied (publickey):
+#    - Verify public key in terraform.tfvars matches private key
+#    - Check SSH key format and encoding
+#    - Ensure VM has been recreated after key changes
+
+# 3. Host unreachable:
+#    - Verify public IP addresses are correct
+#    - Check OCI security lists and network security groups
+#    - Confirm internet gateway and routing table configuration
+
+# 4. Ansible module errors:
+#    - Update Ansible: pip install --upgrade ansible
+#    - Install required collections: ansible-galaxy collection install community.general
+#    - Check Python interpreter path on target hosts
