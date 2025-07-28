@@ -1,0 +1,38 @@
+- name: Install K3s on master
+  hosts: k3s_master
+  become: true
+  
+  tasks:
+    - name: Install K3s
+      shell: |
+        curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--disable traefik" sh -
+      args:
+        creates: /etc/systemd/system/k3s.service
+
+    - name: Wait for K3s token file to exist
+      ansible.builtin.wait_for:
+        path: /var/lib/rancher/k3s/server/node-token
+        timeout: 120
+        state: present
+
+    - name: Get K3s join token
+      shell: cat /var/lib/rancher/k3s/server/node-token
+      register: k3s_token
+
+    - name: Save token to hostvars
+      set_fact:
+        join_token: "{{ k3s_token.stdout }}"
+      delegate_to: localhost
+
+- name: Install K3s on workers
+  hosts: k3s_workers
+  become: true
+  vars:
+    master_ip: "{{ hostvars[groups['k3s_master'][0]].ansible_host | default(groups['k3s_master'][0]) }}"
+    token: "{{ hostvars[groups['k3s_master'][0]].join_token }}"
+  tasks:
+    - name: Install K3s agent
+      shell: |
+        curl -sfL https://get.k3s.io | K3S_URL=https://{{ master_ip }}:6443 K3S_TOKEN={{ token }} sh -
+      args:
+        creates: /etc/systemd/system/k3s-agent.service
