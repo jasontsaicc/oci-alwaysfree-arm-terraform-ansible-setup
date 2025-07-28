@@ -15,19 +15,36 @@ resource "oci_core_network_security_group" "shared_nsg" {
   display_name   = var.nsg_display_name
 }
 # 範例：在 NSG 裡允許 HTTP (80) 及 SSH (22) Ingress，和所有 Egress
-# SSH ingress rule
+# SSH ingress rules - dynamic based on ssh_allowed_cidrs variable
 resource "oci_core_network_security_group_security_rule" "allow_ssh" {
+  count                     = length(var.ssh_allowed_cidrs)
   network_security_group_id = oci_core_network_security_group.shared_nsg.id
   direction                 = "INGRESS"
   protocol                  = "6" # TCP
-  source                    = "59.124.14.121/32"
+  source                    = var.ssh_allowed_cidrs[count.index]
   tcp_options {
     destination_port_range {
       min = 22
       max = 22
     }
   }
-  description = "Allow SSH from anywhere"
+  description = "Allow SSH from ${var.ssh_allowed_cidrs[count.index]}"
+}
+
+# Administrative SSH ingress rules - separate rules for admin access if specified
+resource "oci_core_network_security_group_security_rule" "allow_admin_ssh" {
+  count                     = length(var.admin_ssh_cidrs)
+  network_security_group_id = oci_core_network_security_group.shared_nsg.id
+  direction                 = "INGRESS"
+  protocol                  = "6" # TCP
+  source                    = var.admin_ssh_cidrs[count.index]
+  tcp_options {
+    destination_port_range {
+      min = 22
+      max = 22
+    }
+  }
+  description = "Allow administrative SSH from ${var.admin_ssh_cidrs[count.index]}"
 }
 
 # HTTPS ingress rule
