@@ -20,7 +20,7 @@ resource "oci_core_network_security_group_security_rule" "allow_ssh" {
   network_security_group_id = oci_core_network_security_group.shared_nsg.id
   direction                 = "INGRESS"
   protocol                  = "6" # TCP
-  source                    = "36.229.26.193/32"
+  source                    = "59.124.14.121/32"
   tcp_options {
     destination_port_range {
       min = 22
@@ -30,7 +30,7 @@ resource "oci_core_network_security_group_security_rule" "allow_ssh" {
   description = "Allow SSH from anywhere"
 }
 
-# HTTP ingress rule
+# HTTPS ingress rule
 resource "oci_core_network_security_group_security_rule" "allow_http" {
   network_security_group_id = oci_core_network_security_group.shared_nsg.id
   direction                 = "INGRESS"
@@ -43,6 +43,19 @@ resource "oci_core_network_security_group_security_rule" "allow_http" {
     }
   }
   description = "Allow HTTP from anywhere"
+}
+resource "oci_core_network_security_group_security_rule" "allow_http_port_80" {
+  network_security_group_id = oci_core_network_security_group.shared_nsg.id
+  direction                 = "INGRESS"
+  protocol                  = "6"
+  source                    = "0.0.0.0/0"
+  tcp_options {
+    destination_port_range {
+      min = 80
+      max = 80
+    }
+  }
+  description = "Allow HTTP (80) for ingress controller"
 }
 # wireguard ingress rule
 resource "oci_core_network_security_group_security_rule" "allow_wireguard" {
@@ -69,6 +82,89 @@ resource "oci_core_network_security_group_security_rule" "allow_icmp" {
     code = 0 # Any code
   }
   description = "Allow ICMP from VCN"
+}
+# allow all traffic from the same NSG
+resource "oci_core_network_security_group_security_rule" "allow_internal_traffic" {
+  network_security_group_id = oci_core_network_security_group.shared_nsg.id
+  direction                 = "INGRESS"
+  protocol                  = "all"
+  source                    = "10.0.0.0/8"
+  description               = "Allow all traffic from the same NSG"
+}
+
+# K3s API server (6443/tcp) - for kubectl / K3s agent join
+resource "oci_core_network_security_group_security_rule" "allow_k3s_api" {
+  network_security_group_id = oci_core_network_security_group.shared_nsg.id
+  direction                 = "INGRESS"
+  protocol                  = "6" # TCP
+  source                    = "10.0.0.0/8"
+  tcp_options {
+    destination_port_range {
+      min = 6443
+      max = 6443
+    }
+  }
+  description = "Allow Kubernetes API Server (6443)"
+}
+
+# K3s agent 連線至 server（9345/tcp）
+resource "oci_core_network_security_group_security_rule" "allow_k3s_agent" {
+  network_security_group_id = oci_core_network_security_group.shared_nsg.id
+  direction                 = "INGRESS"
+  protocol                  = "6" # TCP
+  source                    = "10.0.0.0/8"
+  tcp_options {
+    destination_port_range {
+      min = 9345
+      max = 9345
+    }
+  }
+  description = "Allow K3s agent join (9345)"
+}
+
+# Kubelet metrics（10250/tcp）
+resource "oci_core_network_security_group_security_rule" "allow_kubelet_metrics" {
+  network_security_group_id = oci_core_network_security_group.shared_nsg.id
+  direction                 = "INGRESS"
+  protocol                  = "6" # TCP
+  source                    = "10.0.0.0/8"
+  tcp_options {
+    destination_port_range {
+      min = 10250
+      max = 10250
+    }
+  }
+  description = "Allow Kubelet metrics (10250)"
+}
+
+# Flannel VXLAN（8472/udp）- 若使用 Flannel CNI
+resource "oci_core_network_security_group_security_rule" "allow_flannel_vxlan" {
+  network_security_group_id = oci_core_network_security_group.shared_nsg.id
+  direction                 = "INGRESS"
+  protocol                  = "17" # UDP
+  source                    = "10.0.0.0/8"
+  udp_options {
+    destination_port_range {
+      min = 8472
+      max = 8472
+    }
+  }
+  description = "Allow Flannel VXLAN (8472)"
+}
+
+# NodePort range（30000~32767/tcp）- 外部服務對應端口
+resource "oci_core_network_security_group_security_rule" "allow_nodeport_range" {
+  network_security_group_id = oci_core_network_security_group.shared_nsg.id
+  direction                 = "INGRESS"
+  protocol                  = "6" # TCP
+  source                    = "10.0.0.0/8"
+  tcp_options {
+    destination_port_range {
+      min = 30000
+      max = 32767
+    }
+  }
+  description = "Allow NodePort service range (30000-32767)"
 }
 
 # Egress: allow all outbound traffic
